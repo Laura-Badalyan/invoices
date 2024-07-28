@@ -2,114 +2,115 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const InvoicesPage = ({ user }) => {
-  const [invoices, setInvoices] = useState([]);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [invoiceLines, setInvoiceLines] = useState([]);
-  const [invoiceTotals, setInvoiceTotals] = useState({});
 
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      try {
-        const response = await axios.get('https://bever-aca-assignment.azurewebsites.net/invoices');
-        const userInvoices = response.data.value.filter((invoice) => invoice.Userld === user.Userld);
-        setInvoices(userInvoices);
-
-        // Calculate total amounts for each invoice
-        const totals = {};
-        for (const invoice of userInvoices) {
-          const totalAmount = await calculateTotalAmount(invoice.InvoiceId);
-          totals[invoice.InvoiceId] = totalAmount;
-        }
-        setInvoiceTotals(totals);
-      } catch (error) {
-        console.error('Error fetching invoices:', error);
-      }
+    const tableStyle = {
+        border: '1px solid grey',
+        padding: "5px 20px"
     };
-    fetchInvoices();
-  }, [user]);
 
-  const calculateTotalAmount = async (invoiceId) => {
-    try {
-      const response = await axios.get('https://bever-aca-assignment.azurewebsites.net/invoicelines');
-      const lines = response.data.value.filter((line) => line.InvoiceId === invoiceId);
-      const totalAmount = lines.reduce((sum, line) => sum + line.Quantity * line.Price, 0);
-      return totalAmount;
-    } catch (error) {
-      console.error('Error calculating total amount:', error);
-      return 0;
+    const container = {
+        display: "flex",
+        flexDirection: "column"
     }
-  };
 
-  const handleInvoiceSelection = async (invoiceId) => {
-    setSelectedInvoice(invoiceId);
-    try {
-      const response = await axios.get('https://bever-aca-assignment.azurewebsites.net/invoicelines');
-      const lines = response.data.value.filter((line) => line.InvoiceId === invoiceId);
-      setInvoiceLines(lines);
-      console.log( lines);
-    } catch (error) {
-      console.error('Error fetching invoice lines:', error);
-    }
-  };
+    const [invoices, setInvoices] = useState([]);
+    const [invoiceLines, setInvoiceLines] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [invoiceTotals, setInvoiceTotals] = useState({});
 
-  return (
-    <div>
-      <h2>Invoices for {user.userName}</h2>
-      <table>
-        <thead>
-          <tr key={user.InvoiceLineld}>
-            <th>Select</th>
-            <th>Name</th>
-            <th>Paid Date</th>
-            <th>Total Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoices.map((invoice) => (
-            <tr key={invoice.InvoiceId}>
-              <td>
-                <input
-                  type="radio"
-                  name="selectedInvoice"
-                  value={invoice.InvoiceId}
-                  onChange={() => handleInvoiceSelection(invoice.InvoiceId)}
-                />
-              </td>
-              <td>{invoice.InvoiceName}</td>
-              <td>{invoice.PaidDate}</td>
-              <td>{invoiceTotals[invoice.InvoiceId] || 'Calculating...'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    useEffect(() => {
+        const fetchInvoices = async () => {
+            try {
+                const response = await axios.get('https://bever-aca-assignment.azurewebsites.net/invoices');
+                const userInvoices = response.data.value.filter((invoice) => invoice.UserId === user.UserId);
+                setInvoices(userInvoices);
+                console.log("invoices", invoices);
+            } catch (error) {
+                console.error('Error fetching invoices:', error);
+            }
+        };
+        fetchInvoices();
+    }, [user]);
 
-      { selectedInvoice && (
-        <div>
-          <h3>Invoice Lines for Invoice ID: {selectedInvoice}</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Price Per Unit</th>
-                <th>Quantity</th>
-                <th>Total Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoiceLines.map((line) => (
-                <tr key={line.InvoiceLineId}>
-                  <td>{line.ProductName}</td>
-                  <td>{line.Prise}</td>
-                  <td>{line.Quantity}</td>
-                  <td>{line.Prise * line.Quantity}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+      
+    const handleInvoiceSelection = async (invoiceId, productId) => {
+        try{
+            const [response1, response2] = await Promise.all([
+                axios.get('https://bever-aca-assignment.azurewebsites.net/invoicelines'),
+                axios.get('https://bever-aca-assignment.azurewebsites.net/products')
+            ]);
+            const lines = response1.data.value.filter((line) => line.InvoiceId === invoiceId );
+            const prods = response2.data.value.filter((prod) => prod.productId === productId);
+
+            setInvoiceLines(lines);
+            setProducts(prods);
+             
+        } catch (error){
+            console.error('Error fetching products:', error)
+        }
+    };
+
+
+    return (
+        <div style={container}>
+            <h2>Invoices for {user.Name}</h2>
+            <table>
+                <thead>
+                    <tr key={user.invoiceId}>
+                        <th style={tableStyle}>Select</th>
+                        <th style={tableStyle}>Name</th>
+                        <th style={tableStyle}>Paid Date</th>
+                        <th style={tableStyle}>Total Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {invoices.map((invoice) => (
+                        <tr key={invoice.invoiceId}>
+                            <td style={tableStyle}>
+                                <input
+                                    type="radio"
+                                    name="selectedInvoice"
+                                    value={invoice.InvoiceId}
+                                    onChange={() => handleInvoiceSelection(invoice.InvoiceId, invoice.productId)
+                                    }
+                                />
+                            </td>
+                            <td style={tableStyle}>{invoice.Name}</td>
+                            <td style={tableStyle}>{invoice.PaidDate}</td>
+                            <td style={tableStyle}>{invoiceTotals[invoice.InvoiceId] || 'Calculating...'}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            {
+                <div>
+                    <h3>Invoice Lines </h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style={tableStyle}>Product</th>
+                                <th style={tableStyle}>Price Per Unit</th>
+                                <th style={tableStyle}>Quantity</th>
+                                <th style={tableStyle}>Total Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {products.map((prod, i) => (
+                                <tr key={prod.productId}>
+                                    <td style={tableStyle}>{prod.Name}</td>
+                                    <td style={tableStyle}>{prod.Price}</td>
+                                    <td style={tableStyle}>{invoiceLines[i].Quantity}</td>
+                                    <td style={tableStyle}>{prod.Price * invoiceLines[i].Quantity}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
 export default InvoicesPage;

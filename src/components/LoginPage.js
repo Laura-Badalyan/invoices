@@ -28,7 +28,6 @@ const LoginPage = ({ setUser }) => {
       
       const user = response.data.value.find( user => user.Name === username && user.Password === password
       );
-      console.log(user);
 
       if (user) {
         setUser(user);
